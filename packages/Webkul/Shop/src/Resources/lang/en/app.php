@@ -624,6 +624,7 @@ return [
             'review'                 => 'Reviews',
             'tax-inclusive'          => 'Inclusive of all taxes',
             'up-sell-title'          => 'We found other products you might like!',
+            'our-products'          => 'Our products',
         ],
 
         'type' => [

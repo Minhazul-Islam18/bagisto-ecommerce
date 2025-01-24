@@ -624,6 +624,7 @@ return [
             'review'                 => 'রিভিউ',
             'tax-inclusive'          => 'সমস্ত কর সহ',
             'up-sell-title'          => 'আমরা অন্যান্য পণ্য পেয়েছি যা আপনার পছন্দের হতে পারে!',
+            'our-products'           => 'Our products',
         ],
 
         'type' => [
