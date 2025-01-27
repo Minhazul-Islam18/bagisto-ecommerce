@@ -94,7 +94,7 @@ class SystemConfig
     {
         return collect($configItem)
             ->sortBy('sort')
-            ->filter(fn ($value) => is_array($value) && isset($value['name']))
+            ->filter(fn($value) => is_array($value) && isset($value['name']))
             ->map(function ($subConfigItem) {
                 $configItemChildren = $this->processSubConfigItems($subConfigItem);
 
@@ -144,7 +144,7 @@ class SystemConfig
             }
 
             foreach ($coreData['fields'] as $field) {
-                $name = $coreData['key'].'.'.$field['name'];
+                $name = $coreData['key'] . '.' . $field['name'];
 
                 if ($name == $fieldName) {
                     return $field;

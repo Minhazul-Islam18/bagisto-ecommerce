@@ -3381,6 +3381,13 @@ return [
                         'redirection-link'  => 'Redirection Link',
                     ],
 
+                    'partial_payment' => [
+                        'title'             => 'Partial payment',
+                        'title-info'        => 'Set Partial payment on a specific category',
+                        'category'       => 'Category',
+                        'payment_percentage'  => 'Payment percentage',
+                    ],
+
                     'custom-scripts' => [
                         'custom-css'        => 'Custom CSS',
                         'custom-javascript' => 'Custom Javascript',
