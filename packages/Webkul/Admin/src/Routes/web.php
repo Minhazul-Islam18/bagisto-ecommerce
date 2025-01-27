@@ -54,3 +54,8 @@ require 'notification-routes.php';
  * Remaining routes.
  */
 require 'rest-routes.php';
+
+/**
+ * Promotion routes.
+ */
+require 'product-promotion-routes.php';
