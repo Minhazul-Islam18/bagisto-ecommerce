@@ -14,6 +14,7 @@ use Shetabit\Visitor\Traits\Visitable;
 use Webkul\Attribute\Models\AttributeFamilyProxy;
 use Webkul\Attribute\Models\AttributeProxy;
 use Webkul\Attribute\Repositories\AttributeRepository;
+use Webkul\CatalogRule\Models\CatalogRule;
 use Webkul\CatalogRule\Models\CatalogRuleProductPriceProxy;
 use Webkul\Category\Models\CategoryProxy;
 use Webkul\Core\Models\ChannelProxy;
@@ -58,6 +59,16 @@ class Product extends Model implements ProductContract
     public function product_flats(): HasMany
     {
         return $this->hasMany(ProductFlatProxy::modelClass(), 'product_id');
+    }
+
+    /**
+     * The catalog_rule that belong to the Product
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function catalog_rule(): BelongsToMany
+    {
+        return $this->belongsToMany(CatalogRule::class, 'catalog_rule_products', 'product_id');
     }
 
     /**
@@ -336,7 +347,7 @@ class Product extends Model implements ProductContract
             return $this->typeInstance;
         }
 
-        $this->typeInstance = app(config('product_types.'.$this->type.'.class'));
+        $this->typeInstance = app(config('product_types.' . $this->type . '.class'));
 
         if (! $this->typeInstance instanceof AbstractType) {
             throw new Exception("Please ensure the product type '{$this->type}' is configured in your application.");
@@ -367,7 +378,8 @@ class Product extends Model implements ProductContract
      */
     public function getAttribute($key)
     {
-        if (! method_exists(static::class, $key)
+        if (
+            ! method_exists(static::class, $key)
             && ! in_array($key, [
                 'pivot',
                 'parent_id',

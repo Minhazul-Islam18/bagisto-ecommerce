@@ -34,7 +34,7 @@
                 </a>
 
                 {!! view_render_event('bagisto.shop.components.products.card.image.after') !!}
-                
+
                 <!-- Product Ratings -->
                 {!! view_render_event('bagisto.shop.components.products.card.average_ratings.before') !!}
 
@@ -114,7 +114,23 @@
 
             <!-- Product Information Section -->
             <div class="-mt-9 grid max-w-[291px] translate-y-9 content-start gap-2.5 bg-white p-2.5 transition-transform duration-300 ease-out group-hover:-translate-y-0 group-hover:rounded-t-lg max-md:relative max-md:mt-0 max-md:translate-y-0 max-md:gap-0 max-md:px-0 max-md:py-1.5 max-sm:min-w-[170px] max-sm:max-w-[192px]">
-
+                <div  v-if="countdownLabel" class="flex items-center space-x-2 bg-red-100 text-red-700 px-3 py-2 rounded-lg shadow-md flex-col">
+                    <span class="text-emerald-500 font-semibold">@{{ countdownLabel }}</span>
+                    <div class="flex gap-2.5 items-center justify-center space-x-1 w-full">
+                        <span class="bg-black h-12 w-12 flex items-center justify-center text-white rounded text-sm font-semibold">
+                            @{{ countdown.days }}d
+                        </span>
+                        <span class="bg-black h-12 w-12 flex items-center justify-center text-white rounded text-sm font-semibold">
+                            @{{ countdown.hours }}h
+                        </span>
+                        <span class="bg-black h-12 w-12 flex items-center justify-center text-white rounded text-sm font-semibold">
+                            @{{ countdown.minutes }}m
+                        </span>
+                        <span class="bg-black h-12 w-12 flex items-center justify-center text-white rounded text-sm font-semibold">
+                            @{{ countdown.seconds }}s
+                        </span>
+                    </div>
+                </div>
                 {!! view_render_event('bagisto.shop.components.products.card.name.before') !!}
 
                 <p class="break-all text-base font-medium max-md:mb-1.5 max-md:max-w-56 max-md:whitespace-break-spaces max-md:leading-6 max-sm:max-w-[192px] max-sm:text-sm max-sm:leading-4">
@@ -189,7 +205,7 @@
             class="relative flex max-w-max grid-cols-2 gap-4 overflow-hidden rounded max-sm:flex-wrap"
             v-else
         >
-            <div class="group relative max-h-[258px] max-w-[250px] overflow-hidden"> 
+            <div class="group relative max-h-[258px] max-w-[250px] overflow-hidden">
 
                 {!! view_render_event('bagisto.shop.components.products.card.image.before') !!}
 
@@ -227,7 +243,7 @@
                         {!! view_render_event('bagisto.shop.components.products.card.wishlist_option.before') !!}
 
                         @if (core()->getConfigData('customer.settings.wishlist.wishlist_option'))
-                            <span 
+                            <span
                                 class="absolute top-5 flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-md bg-white text-2xl ltr:right-5 rtl:left-5"
                                 role="button"
                                 aria-label="@lang('shop::app.components.products.card.add-to-wishlist')"
@@ -334,123 +350,81 @@
         </div>
     </script>
 
-    <script type="module">
-        app.component('v-product-card', {
-            template: '#v-product-card-template',
+  <script type="module">
+    app.component('v-product-card', {
+        template: '#v-product-card-template',
 
-            props: ['mode', 'product'],
+        props: ['mode', 'product'],
 
-            data() {
-                return {
-                    isCustomer: '{{ auth()->guard('customer')->check() }}',
+        data() {
+            return {
+                isCustomer: '{{ auth()->guard('customer')->check() }}',
 
-                    isAddingToCart: false,
+                isAddingToCart: false,
+                countdown: {
+                    days: 0,
+                    hours: 0,
+                    minutes: 0,
+                    seconds: 0,
+                },
+                timer: null,
+            };
+        },
+
+        computed: {
+            showTimer() {
+                return this.product.special_price_from && this.product.special_price_to;
+            },
+
+            countdownLabel() {
+                const now = new Date();
+                const specialPriceFrom = new Date(this.product.special_price_from);
+                const specialPriceTo = new Date(this.product.special_price_to);
+
+                if (specialPriceFrom > now) {
+                    return '⏱️ Sale starts in';
+                } else if (specialPriceTo > now) {
+                    return '⏳ Sale ends in';
+                } else {
+                    return null;
+                }
+            }
+        },
+
+        methods: {
+            updateCountdown() {
+                if (!this.showTimer || !this.countdownLabel) return;
+
+                const targetTime = this.countdownLabel === 'Sale starts in'
+                    ? new Date(this.product.special_price_from)
+                    : new Date(this.product.special_price_to);
+
+                const now = new Date();
+
+                if (targetTime > now) {
+                    const diff = targetTime - now;
+
+                    this.countdown.days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    this.countdown.hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    this.countdown.minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    this.countdown.seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                } else {
+                    this.countdown = { days: 0, hours: 0, minutes: 0, seconds: 0 };
+                    clearInterval(this.timer);
                 }
             },
+        },
 
-            methods: {
-                addToWishlist() {
-                    if (this.isCustomer) {
-                        this.$axios.post(`{{ route('shop.api.customers.account.wishlist.store') }}`, {
-                                product_id: this.product.id
-                            })
-                            .then(response => {
-                                this.product.is_wishlist = ! this.product.is_wishlist;
+        mounted() {
+            if (this.showTimer) {
+                this.updateCountdown();
+                this.timer = setInterval(this.updateCountdown, 1000);
+            }
+        },
 
-                                this.$emitter.emit('add-flash', { type: 'success', message: response.data.data.message });
-                            })
-                            .catch(error => {});
-                        } else {
-                            window.location.href = "{{ route('shop.customer.session.index')}}";
-                        }
-                },
-
-                addToCompare(productId) {
-                    /**
-                     * This will handle for customers.
-                     */
-                    if (this.isCustomer) {
-                        this.$axios.post('{{ route("shop.api.compare.store") }}', {
-                                'product_id': productId
-                            })
-                            .then(response => {
-                                this.$emitter.emit('add-flash', { type: 'success', message: response.data.data.message });
-                            })
-                            .catch(error => {
-                                if ([400, 422].includes(error.response.status)) {
-                                    this.$emitter.emit('add-flash', { type: 'warning', message: error.response.data.data.message });
-
-                                    return;
-                                }
-
-                                this.$emitter.emit('add-flash', { type: 'error', message: error.response.data.message});
-                            });
-
-                        return;
-                    }
-
-                    /**
-                     * This will handle for guests.
-                     */
-                    let items = this.getStorageValue() ?? [];
-
-                    if (items.length) {
-                        if (! items.includes(productId)) {
-                            items.push(productId);
-
-                            localStorage.setItem('compare_items', JSON.stringify(items));
-
-                            this.$emitter.emit('add-flash', { type: 'success', message: "@lang('shop::app.components.products.card.add-to-compare-success')" });
-                        } else {
-                            this.$emitter.emit('add-flash', { type: 'warning', message: "@lang('shop::app.components.products.card.already-in-compare')" });
-                        }
-                    } else {
-                        localStorage.setItem('compare_items', JSON.stringify([productId]));
-
-                        this.$emitter.emit('add-flash', { type: 'success', message: "@lang('shop::app.components.products.card.add-to-compare-success')" });
-
-                    }
-                },
-
-                getStorageValue(key) {
-                    let value = localStorage.getItem('compare_items');
-
-                    if (! value) {
-                        return [];
-                    }
-
-                    return JSON.parse(value);
-                },
-
-                addToCart() {
-                    this.isAddingToCart = true;
-
-                    this.$axios.post('{{ route("shop.api.checkout.cart.store") }}', {
-                            'quantity': 1,
-                            'product_id': this.product.id,
-                        })
-                        .then(response => {
-                            if (response.data.message) {
-                                this.$emitter.emit('update-mini-cart', response.data.data );
-
-                                this.$emitter.emit('add-flash', { type: 'success', message: response.data.message });
-                            } else {
-                                this.$emitter.emit('add-flash', { type: 'warning', message: response.data.data.message });
-                            }
-
-                            this.isAddingToCart = false;
-                        })
-                        .catch(error => {
-                            this.$emitter.emit('add-flash', { type: 'error', message: error.response.data.message });
-
-                            if (error.response.data.redirect_uri) {
-                                window.location.href = error.response.data.redirect_uri;
-                            }
-                            
-                            this.isAddingToCart = false;
-                        });
-                },
-            },
-        });
-    </script>
+        beforeDestroy() {
+            clearInterval(this.timer);
+        }
+    });
+</script>
 @endpushOnce

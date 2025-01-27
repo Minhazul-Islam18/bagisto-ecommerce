@@ -56,6 +56,47 @@ class ProductController extends APIController
     }
 
     /**
+     * Flash Sale Products.
+     */
+    public function flashSaleProducts(): JsonResource
+    {
+        if (core()->getConfigData('catalog.products.search.engine') == 'elastic') {
+            $searchEngine = core()->getConfigData('catalog.products.search.storefront_mode');
+        }
+
+        $products = $this->productRepository
+            ->setSearchEngine($searchEngine ?? 'database')
+            ->getAll(array_merge(request()->query(), [
+                'channel_id'           => core()->getCurrentChannel()->id,
+                'status'               => 1,
+                'visible_individually' => 1,
+            ]))->filter(function ($product) {
+                $now = now();
+                return !empty($product->special_price) &&
+                    !empty($product->special_price_from) &&
+                    !empty($product->special_price_to) &&
+                    $now->between($product->special_price_from, $product->special_price_to);
+            });
+
+        if (! empty(request()->query('query'))) {
+            /**
+             * Update or create search term only if
+             * there is only one filter that is query param
+             */
+            if (count(request()->except(['mode', 'sort', 'limit'])) == 1) {
+                UpdateCreateSearchTermJob::dispatch([
+                    'term'       => request()->query('query'),
+                    'results'    => $products->total(),
+                    'channel_id' => core()->getCurrentChannel()->id,
+                    'locale'     => app()->getLocale(),
+                ]);
+            }
+        }
+
+        return ProductResource::collection($products);
+    }
+
+    /**
      * Related product listings.
      *
      * @param  int  $id

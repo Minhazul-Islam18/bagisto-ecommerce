@@ -32,6 +32,8 @@ Route::group(['middleware' => ['locale', 'theme', 'currency'], 'prefix' => 'api'
     Route::controller(ProductController::class)->prefix('products')->group(function () {
         Route::get('', 'index')->name('shop.api.products.index');
 
+        Route::get('/on-flash-sale', 'flashSaleProducts')->name('shop.api.products.on-flash-sale');
+
         Route::get('{id}/related', 'relatedProducts')->name('shop.api.products.related.index');
 
         Route::get('{id}/up-sell', 'upSellProducts')->name('shop.api.products.up-sell.index');

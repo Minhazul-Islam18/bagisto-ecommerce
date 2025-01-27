@@ -31,13 +31,15 @@ class ProductResource extends JsonResource
         $productTypeInstance = $this->getTypeInstance();
 
         return [
+            'special_price' => $this->special_price,
+            'special_price_from' => $this->special_price_from,
+            'special_price_to' => $this->special_price_to,
             'id'          => $this->id,
             'sku'         => $this->sku,
             'name'        => $this->name,
-            'description' => $this->description,
             'url_key'     => $this->url_key,
             'base_image'  => product_image()->getProductBaseImage($this),
-            'images'      => product_image()->getGalleryImages($this),
+            // 'images'      => product_image()->getGalleryImages($this),
             'is_new'      => (bool) $this->new,
             'is_featured' => (bool) $this->featured,
             'on_sale'     => (bool) $productTypeInstance->haveDiscount(),

@@ -67,6 +67,13 @@
         @endswitch
     @endforeach
 
+         <!-- Product Carousel -->
+                <x-shop::products.carousel
+                    :title="$data['title'] ?? 'Flash sales'"
+                    :src="route('shop.api.products.on-flash-sale', $data['filters'] ?? [])"
+                    :navigation-link="route('shop.search.index', $data['filters'] ?? [])"
+                    aria-label="Product Carousel"
+                />
     <div class="container mt-20 max-lg:px-8 max-md:mt-8 max-sm:mt-7 max-sm:!px-4">
         <div class="mt-8 flex items-center justify-between max-md:mt-5">
             <h1

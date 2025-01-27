@@ -129,16 +129,16 @@ return [
         'icon'       => '',
     ],
 
-    /**
-     * Offers.
-     */
-    [
-        'key'        => 'offers',
-        'name'       => 'admin::app.components.layouts.sidebar.offers',
-        'route'      => 'admin.promotions.index',
-        'sort'       => 5,
-        'icon'       => 'icon-offer',
-    ],
+    // /**
+    //  * Offers.
+    //  */
+    // [
+    //     'key'        => 'offers',
+    //     'name'       => 'admin::app.components.layouts.sidebar.offers',
+    //     'route'      => 'admin.promotions.index',
+    //     'sort'       => 5,
+    //     'icon'       => 'icon-offer',
+    // ],
 
     /**
      * CMS.
