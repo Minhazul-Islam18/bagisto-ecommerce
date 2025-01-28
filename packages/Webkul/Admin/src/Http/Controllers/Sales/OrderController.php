@@ -123,7 +123,6 @@ class OrderController extends Controller
     public function view(int $id)
     {
         $order = $this->orderRepository->findOrFail($id);
-
         return view('admin::sales.orders.view', compact('order'));
     }
 
@@ -205,9 +204,9 @@ class OrderController extends Controller
     public function search()
     {
         $orders = $this->orderRepository->scopeQuery(function ($query) {
-            return $query->where('customer_email', 'like', '%'.urldecode(request()->input('query')).'%')
-                ->orWhere('status', 'like', '%'.urldecode(request()->input('query')).'%')
-                ->orWhere(DB::raw('CONCAT('.DB::getTablePrefix().'customer_first_name, " ", '.DB::getTablePrefix().'customer_last_name)'), 'like', '%'.urldecode(request()->input('query')).'%')
+            return $query->where('customer_email', 'like', '%' . urldecode(request()->input('query')) . '%')
+                ->orWhere('status', 'like', '%' . urldecode(request()->input('query')) . '%')
+                ->orWhere(DB::raw('CONCAT(' . DB::getTablePrefix() . 'customer_first_name, " ", ' . DB::getTablePrefix() . 'customer_last_name)'), 'like', '%' . urldecode(request()->input('query')) . '%')
                 ->orWhere('increment_id', request()->input('query'))
                 ->orderBy('created_at', 'desc');
         })->paginate(10);

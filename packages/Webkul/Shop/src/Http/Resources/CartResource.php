@@ -35,6 +35,8 @@ class CartResource extends JsonResource
             'coupon_code'                        => $this->coupon_code,
             'discount_amount'                    => $this->discount_amount,
             'formatted_discount_amount'          => core()->formatPrice($this->discount_amount),
+            'partial_payment_amount'                    => $this->partial_payment_amount,
+            'formatted_partial_payment_amount'          => core()->formatPrice($this->partial_payment_amount),
             'shipping_method'                    => $this->shipping_method,
             'shipping_amount'                    => $this->shipping_amount,
             'formatted_shipping_amount'          => core()->formatPrice($this->shipping_amount),
@@ -47,7 +49,7 @@ class CartResource extends JsonResource
             'shipping_address'                   => new AddressResource($this->shipping_address),
             'have_stockable_items'               => $this->haveStockableItems(),
             'payment_method'                     => $this->payment?->method,
-            'payment_method_title'               => core()->getConfigData('sales.payment_methods.'.$this->payment?->method.'.title'),
+            'payment_method_title'               => core()->getConfigData('sales.payment_methods.' . $this->payment?->method . '.title'),
         ];
     }
 }

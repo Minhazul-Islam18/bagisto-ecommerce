@@ -2,7 +2,6 @@
     <x-slot:title>
         @lang('admin::app.sales.orders.view.title', ['order_id' => $order->increment_id])
     </x-slot>
-
     <!-- Header -->
     <div class="grid">
         <div class="flex items-center justify-between gap-4 max-sm:flex-wrap">
@@ -44,7 +43,7 @@
                     href="{{ route('admin.sales.orders.reorder', $order->id) }}"
                     class="transparent-button px-1 py-1.5 hover:bg-gray-200 dark:text-white dark:hover:bg-gray-800"
                 >
-                    <span class="icon-cart text-2xl"></span> 
+                    <span class="icon-cart text-2xl"></span>
 
                     @lang('admin::app.sales.orders.view.reorder')
                 </a>
@@ -84,7 +83,7 @@
                     @csrf
                 </form>
 
-                <div 
+                <div
                     class="transparent-button px-1 py-1.5 hover:bg-gray-200 dark:text-white dark:hover:bg-gray-800"
                     @click="$emitter.emit('open-confirm-modal', {
                         message: '@lang('admin::app.sales.orders.view.cancel-msg')',
@@ -101,7 +100,7 @@
                     </span>
 
                     <a href="javascript:void(0);">
-                        @lang('admin::app.sales.orders.view.cancel')    
+                        @lang('admin::app.sales.orders.view.cancel')
                     </a>
                 </div>
             @endif
@@ -204,7 +203,7 @@
                                             <p class="text-gray-600 dark:text-gray-300">
                                                 @lang('admin::app.sales.orders.view.price-excl-tax', ['price' => core()->formatBasePrice($item->base_price)])
                                             </p>
-                                            
+
                                             <p class="text-gray-600 dark:text-gray-300">
                                                 @lang('admin::app.sales.orders.view.price-incl-tax', ['price' => core()->formatBasePrice($item->base_price_incl_tax)])
                                             </p>
@@ -235,7 +234,7 @@
                                             <p class="text-gray-600 dark:text-gray-300">
                                                 @lang('admin::app.sales.orders.view.sub-total-excl-tax', ['sub_total' => core()->formatBasePrice($item->base_total)])
                                             </p>
-                                            
+
                                             <p class="text-gray-600 dark:text-gray-300">
                                                 @lang('admin::app.sales.orders.view.sub-total-incl-tax', ['sub_total' => core()->formatBasePrice($item->base_total_incl_tax)])
                                             </p>
@@ -327,7 +326,7 @@
                                             {{ core()->formatBasePrice($order->base_shipping_amount) }}
                                         </p>
                                     </div>
-                                    
+
                                     <div class="flex w-full justify-between gap-x-5">
                                         <p class="!leading-5 text-gray-600 dark:text-gray-300">
                                             @lang('admin::app.sales.orders.view.shipping-and-handling-incl-tax')
@@ -374,7 +373,7 @@
                                 <p class="!leading-5 text-gray-600 dark:text-gray-300">
                                     @lang('admin::app.sales.orders.view.summary-discount')
                                 </p>
-    
+
                                 <p class="!leading-5 text-gray-600 dark:text-gray-300">
                                     {{ core()->formatBasePrice($order->base_discount_amount) }}
                                 </p>
@@ -397,6 +396,21 @@
 
                             {!! view_render_event('bagisto.admin.sales.order.view.grand-total.after') !!}
 
+                            {!! view_render_event('bagisto.admin.sales.order.view.partial_payment_amount.before') !!}
+
+                            <!-- Total Partial amount -->
+                            <div class="flex w-full justify-between gap-x-5">
+                                <p class="!leading-5 text-gray-600 dark:text-gray-300">
+                                    @lang('admin::app.sales.orders.view.partial-payment')
+                                </p>
+
+                                <p class="!leading-5 text-gray-600 dark:text-gray-300">
+                                    {{ core()->formatBasePrice($order->partial_payment_amount) }}
+                                </p>
+                            </div>
+
+                            {!! view_render_event('bagisto.admin.sales.order.view.partial_payment_amount.after') !!}
+
                             {!! view_render_event('bagisto.admin.sales.order.view.total-paid.before') !!}
 
                             <!-- Total Paid -->
@@ -404,7 +418,7 @@
                                 <p class="!leading-5 text-gray-600 dark:text-gray-300">
                                     @lang('admin::app.sales.orders.view.total-paid')
                                 </p>
-                                
+
                                 <p class="!leading-5 text-gray-600 dark:text-gray-300">
                                     {{ core()->formatBasePrice($order->base_grand_total_invoiced) }}
                                 </p>
@@ -419,7 +433,7 @@
                                 <p class="!leading-5 text-gray-600 dark:text-gray-300">
                                     @lang('admin::app.sales.orders.view.total-refund')
                                 </p>
-                                
+
                                 <p class="!leading-5 text-gray-600 dark:text-gray-300">
                                     {{ core()->formatBasePrice($order->base_grand_total_refunded) }}
                                 </p>
@@ -434,7 +448,7 @@
                                 <p class="!leading-5 text-gray-600 dark:text-gray-300">
                                     @lang('admin::app.sales.orders.view.total-due')
                                 </p>
-                                
+
                                 @if($order->status !== 'canceled')
                                     <p class="!leading-5 text-gray-600 dark:text-gray-300">
                                         {{ core()->formatBasePrice($order->base_total_due) }}

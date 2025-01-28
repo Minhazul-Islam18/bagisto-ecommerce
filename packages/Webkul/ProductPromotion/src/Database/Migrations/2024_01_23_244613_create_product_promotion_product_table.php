@@ -13,12 +13,12 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('product_promotion_product', function (Blueprint $table) {
-            $table->increments('id');
-            $table->foreignId('promotion_id')->constrained('product_promotions')->cascadeOnDelete();
-            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
-            $table->timestamps();
-        });
+        // Schema::create('product_promotion_product', function (Blueprint $table) {
+        //     $table->increments('id');
+        //     $table->foreignId('promotion_id')->constrained('product_promotions')->cascadeOnDelete();
+        //     $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
+        //     $table->timestamps();
+        // });
     }
 
     /**

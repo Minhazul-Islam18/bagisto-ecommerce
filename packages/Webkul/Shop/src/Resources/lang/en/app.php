@@ -834,6 +834,7 @@ return [
                 'sub-total-incl-tax'        => 'Subtotal (Incl. Tax)',
                 'sub-total'                 => 'Subtotal',
                 'tax'                       => 'Tax',
+                'partial-payment'     => 'Partial payment',
             ],
         ],
 

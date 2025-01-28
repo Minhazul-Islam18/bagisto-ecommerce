@@ -80,7 +80,7 @@
                 @{{ cart.formatted_sub_total }}
             </p>
         </div>
-        
+
         <div class="flex justify-between text-right">
             <p class="text-base max-sm:text-sm">
                 @lang('shop::app.checkout.onepage.summary.sub-total-incl-tax')
@@ -124,6 +124,21 @@
 
     {!! view_render_event('bagisto.shop.checkout.onepage.summary.discount_amount.after') !!}
 
+    <!-- Cart Partial payment -->
+    {!! view_render_event('bagisto.shop.checkout.onepage.summary.partial_payment_amount.before') !!}
+
+    <div class="flex justify-between text-right">
+        <p class="text-base max-sm:text-sm">
+            @lang('shop::app.checkout.onepage.summary.partial-payment')
+        </p>
+
+        <p class="text-base font-medium max-sm:text-sm">
+            @{{ cart.formatted_partial_payment_amount }}
+        </p>
+    </div>
+
+    {!! view_render_event('bagisto.shop.checkout.onepage.summary.partial_payment_amount.after') !!}
+
     <!-- Apply Coupon -->
     {!! view_render_event('bagisto.shop.checkout.onepage.summary.coupon.before') !!}
 
@@ -133,7 +148,7 @@
 
     <!-- Shipping Rates -->
     {!! view_render_event('bagisto.shop.checkout.onepage.summary.delivery_charges.before') !!}
-        
+
     <template v-if="displayTax.shipping == 'including_tax'">
         <div class="flex justify-between text-right">
             <p class="text-base max-sm:text-sm">
@@ -156,7 +171,7 @@
                 @{{ cart.formatted_shipping_amount }}
             </p>
         </div>
-        
+
         <div class="flex justify-between text-right">
             <p class="text-base max-sm:text-sm">
                 @lang('shop::app.checkout.onepage.summary.delivery-charges-incl-tax')
@@ -213,7 +228,7 @@
 
             <p class="flex items-center gap-1 text-base font-medium max-sm:text-sm">
                 @{{ cart.formatted_tax_total }}
-                
+
                 <span
                     class="text-xl"
                     :class="{'icon-arrow-up': cart.show_taxes, 'icon-arrow-down': ! cart.show_taxes}"

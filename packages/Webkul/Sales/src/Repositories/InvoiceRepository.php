@@ -48,14 +48,21 @@ class InvoiceRepository extends Repository
             Event::dispatch('sales.invoice.save.before', $data);
 
             $order = $this->orderRepository->find($data['order_id']);
-
             $totalQty = array_sum($data['invoice']['items']);
 
-            if (isset($invoiceState)) {
-                $state = $invoiceState;
-            } else {
-                $state = 'paid';
+            // Determine the invoice state
+            $state = $invoiceState ?? 'paid';
+
+            // Calculate the total invoice amount
+            $invoiceTotal = 0;
+            foreach ($data['invoice']['items'] as $itemId => $qty) {
+                $orderItem = $this->orderItemRepository->find($itemId);
+                $invoiceTotal += ($orderItem->price * $qty);
             }
+
+            // Handle Partial Payment
+            $partialPaymentAmount = isset($data['partial_payment_amount']) ? floatval($data['partial_payment_amount']) : 0;
+            $finalInvoiceTotal = max(0, $invoiceTotal - $partialPaymentAmount);
 
             $invoice = $this->model->create([
                 'increment_id'          => $this->generateIncrementId(),
@@ -66,24 +73,26 @@ class InvoiceRepository extends Repository
                 'channel_currency_code' => $order->channel_currency_code,
                 'order_currency_code'   => $order->order_currency_code,
                 'order_address_id'      => $order->billing_address->id,
+                'total_amount'          => $invoiceTotal, // Original total
+                'partial_payment_amount' => $partialPaymentAmount, // Partial Payment Amount
+                'final_invoice_amount'  => $finalInvoiceTotal, // Final invoice total after partial payment
             ]);
 
+            // Process invoice items
             foreach ($data['invoice']['items'] as $itemId => $qty) {
                 if (! $qty) {
                     continue;
                 }
 
                 $orderItem = $this->orderItemRepository->find($itemId);
-
                 if ($qty > $orderItem->qty_to_invoice) {
                     $qty = $orderItem->qty_to_invoice;
                 }
 
                 $taxAmount = (($orderItem->tax_amount / $orderItem->qty_ordered) * $qty);
-
                 $baseTaxAmount = (($orderItem->base_tax_amount / $orderItem->qty_ordered) * $qty);
 
-                $invoiceItem = $this->invoiceItemRepository->create([
+                $this->invoiceItemRepository->create([
                     'invoice_id'           => $invoice->id,
                     'order_item_id'        => $orderItem->id,
                     'name'                 => $orderItem->name,
@@ -106,67 +115,10 @@ class InvoiceRepository extends Repository
                     'additional'           => $orderItem->additional,
                 ]);
 
-                if ($orderItem->getTypeInstance()->isComposite()) {
-                    foreach ($orderItem->children as $childOrderItem) {
-                        $finalQty = $childOrderItem->qty_ordered
-                            ? ($childOrderItem->qty_ordered / $orderItem->qty_ordered) * $qty
-                            : $orderItem->qty_ordered;
-
-                        $this->invoiceItemRepository->create([
-                            'invoice_id'           => $invoice->id,
-                            'order_item_id'        => $childOrderItem->id,
-                            'parent_id'            => $invoiceItem->id,
-                            'name'                 => $childOrderItem->name,
-                            'sku'                  => $childOrderItem->sku,
-                            'qty'                  => $finalQty,
-                            'price'                => $childOrderItem->price,
-                            'base_price'           => $childOrderItem->base_price,
-                            'total'                => $childOrderItem->price * $finalQty,
-                            'base_total'           => $childOrderItem->base_price * $finalQty,
-                            'tax_amount'           => 0,
-                            'base_tax_amount'      => 0,
-                            'discount_amount'      => 0,
-                            'base_discount_amount' => 0,
-                            'product_id'           => $childOrderItem->product_id,
-                            'product_type'         => $childOrderItem->product_type,
-                            'additional'           => $childOrderItem->additional,
-                        ]);
-
-                        if (
-                            $childOrderItem->product
-                            && ! $childOrderItem->getTypeInstance()->isStockable()
-                            && $childOrderItem->getTypeInstance()->showQuantityBox()
-                        ) {
-                            $this->invoiceItemRepository->updateProductInventory([
-                                'invoice'   => $invoice,
-                                'product'   => $childOrderItem->product,
-                                'qty'       => $finalQty,
-                                'vendor_id' => $data['vendor_id'] ?? 0,
-                            ]);
-                        }
-
-                        $this->orderItemRepository->collectTotals($childOrderItem);
-                    }
-                } elseif (
-                    $orderItem->product
-                    && ! $orderItem->getTypeInstance()->isStockable()
-                    && $orderItem->getTypeInstance()->showQuantityBox()
-                ) {
-                    $this->invoiceItemRepository->updateProductInventory([
-                        'invoice'   => $invoice,
-                        'product'   => $orderItem->product,
-                        'qty'       => $qty,
-                        'vendor_id' => $data['vendor_id'] ?? 0,
-                    ]);
-                }
-
                 $this->orderItemRepository->collectTotals($orderItem);
-
-                $this->downloadableLinkPurchasedRepository->updateStatus($orderItem, 'available');
             }
 
             $this->collectTotals($invoice);
-
             $this->orderRepository->collectTotals($order);
 
             if (isset($orderState)) {
@@ -175,15 +127,12 @@ class InvoiceRepository extends Repository
                 $this->orderRepository->updateOrderStatus($order);
             }
 
-            /**
-             * Temporary property has been used to avoid request helper usage in listener.
-             */
+            // Allow transaction creation only if requested
             $invoice->can_create_transaction = request()->has('can_create_transaction') && request()->input('can_create_transaction') == '1';
 
             Event::dispatch('sales.invoice.save.after', $invoice);
         } catch (\Exception $e) {
             DB::rollBack();
-
             throw $e;
         }
 
@@ -303,9 +252,9 @@ class InvoiceRepository extends Repository
             }
         }
 
-        $invoice->grand_total = $invoice->sub_total + $invoice->tax_amount + $invoice->shipping_amount - $invoice->discount_amount;
-        $invoice->base_grand_total = $invoice->base_sub_total + $invoice->base_tax_amount + $invoice->base_shipping_amount - $invoice->base_discount_amount;
-
+        $invoice->partial_payment_amount = (float)$invoice->order->partial_payment_amount;
+        $invoice->grand_total = $invoice->sub_total + $invoice->tax_amount + (float)$invoice->order->partial_payment_amount + $invoice->shipping_amount - $invoice->discount_amount;
+        $invoice->base_grand_total = $invoice->base_sub_total + $invoice->base_tax_amount + (float)$invoice->order->partial_payment_amount + $invoice->base_shipping_amount - $invoice->base_discount_amount;
         $invoice->save();
 
         return $invoice;

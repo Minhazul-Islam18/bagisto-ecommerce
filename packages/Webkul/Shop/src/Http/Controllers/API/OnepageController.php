@@ -173,8 +173,8 @@ class OnepageController extends APIController
         }
 
         $data = (new OrderResource($cart))->jsonSerialize();
-
         $order = $this->orderRepository->create($data);
+        dd($order);
 
         Cart::deActivateCart();
 

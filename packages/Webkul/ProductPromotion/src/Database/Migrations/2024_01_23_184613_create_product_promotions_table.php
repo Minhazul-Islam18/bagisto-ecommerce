@@ -13,16 +13,16 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('product_promotions', function (Blueprint $table) {
-            $table->id();
-            $table->string('title')->nullable();
-            $table->string('banner')->nullable();
-            $table->date('starts_from')->nullable();
-            $table->date('ends_till')->nullable();
-            $table->boolean('status')->default(0);
-            $table->json('products');
-            $table->timestamps();
-        });
+        // Schema::create('product_promotions', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->string('title')->nullable();
+        //     $table->string('banner')->nullable();
+        //     $table->date('starts_from')->nullable();
+        //     $table->date('ends_till')->nullable();
+        //     $table->boolean('status')->default(0);
+        //     $table->json('products');
+        //     $table->timestamps();
+        // });
     }
 
     /**

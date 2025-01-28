@@ -114,20 +114,20 @@
                                         </div>
 
                                         @if ($customAttributeValue['type'] == 'file')
-                                            <a 
-                                                href="{{ Storage::url($product[$customAttributeValue['code']]) }}" 
+                                            <a
+                                                href="{{ Storage::url($product[$customAttributeValue['code']]) }}"
                                                 download="{{ $customAttributeValue['label'] }}"
                                             >
                                                 <span class="icon-download text-2xl"></span>
                                             </a>
                                         @elseif ($customAttributeValue['type'] == 'image')
-                                            <a 
-                                                href="{{ Storage::url($product[$customAttributeValue['code']]) }}" 
+                                            <a
+                                                href="{{ Storage::url($product[$customAttributeValue['code']]) }}"
                                                 download="{{ $customAttributeValue['label'] }}"
                                             >
-                                                <img 
-                                                    class="min-h-5 min-w-5 h-5 w-5" 
-                                                    src="{{ Storage::url($customAttributeValue['value']) }}" 
+                                                <img
+                                                    class="min-h-5 min-w-5 h-5 w-5"
+                                                    src="{{ Storage::url($customAttributeValue['value']) }}"
                                                 />
                                             </a>
                                         @else
@@ -212,8 +212,8 @@
                                             href="{{ Storage::url($product[$customAttributeValue['code']]) }}"
                                             download="{{ $customAttributeValue['label'] }}"
                                         >
-                                            <img 
-                                                class="min-h-5 min-w-5 h-5 w-5" 
+                                            <img
+                                                class="min-h-5 min-w-5 h-5 w-5"
                                                 src="{{ Storage::url($customAttributeValue['value']) }}"
                                                 alt="Product Image"
                                             />
@@ -466,6 +466,11 @@
                                 </div>
 
                                 {!! view_render_event('bagisto.shop.products.view.additional_actions.after', ['product' => $product]) !!}
+                                                                    @if ($categoryExists)
+                                        <p class="mt-4 badge bg-opacity-50 bg-red-500 dark:bg-red-900 dark:text-red-300 font-medium me-2 p-3 px-2.5 py-0.5 rounded-sm text-center text-red-800 text-sm">You need to pay extra percentage of {{ $extra_percentage }}%</p>
+                                    @else
+
+                                    @endif
                             </div>
                         </div>
                     </div>
@@ -620,7 +625,7 @@
                                 behavior: 'smooth'
                             });
                         }
-                        
+
                         let tabElement = document.querySelector('#review-tab-button');
 
                         if (tabElement) {

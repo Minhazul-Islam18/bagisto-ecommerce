@@ -103,7 +103,6 @@ class InvoiceController extends Controller
     public function view(int $id)
     {
         $invoice = $this->invoiceRepository->findOrFail($id);
-
         return view('admin::sales.invoices.view', compact('invoice'));
     }
 
@@ -140,7 +139,7 @@ class InvoiceController extends Controller
 
         return $this->downloadPDF(
             view('admin::sales.invoices.pdf', compact('invoice'))->render(),
-            'invoice-'.$invoice->created_at->format('d-m-Y')
+            'invoice-' . $invoice->created_at->format('d-m-Y')
         );
     }
 }

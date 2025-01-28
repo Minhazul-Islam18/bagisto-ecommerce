@@ -2,23 +2,24 @@
 
 namespace Webkul\Checkout;
 
+use Webkul\Tax\Facades\Tax;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
-use Webkul\Checkout\Contracts\CartAddress as CartAddressContract;
-use Webkul\Checkout\Exceptions\BillingAddressNotFoundException;
+use Webkul\Shipping\Facades\Shipping;
 use Webkul\Checkout\Models\CartAddress;
 use Webkul\Checkout\Models\CartPayment;
-use Webkul\Checkout\Repositories\CartAddressRepository;
-use Webkul\Checkout\Repositories\CartItemRepository;
 use Webkul\Checkout\Repositories\CartRepository;
+use Webkul\Product\Repositories\ProductRepository;
+use Webkul\Tax\Repositories\TaxCategoryRepository;
+use Webkul\Checkout\Repositories\CartItemRepository;
+use Webkul\Customer\Repositories\WishlistRepository;
+use Webkul\Checkout\Repositories\CartAddressRepository;
+use Webkul\Product\Contracts\Product as ProductContract;
 use Webkul\Customer\Contracts\Customer as CustomerContract;
 use Webkul\Customer\Contracts\Wishlist as WishlistContract;
 use Webkul\Customer\Repositories\CustomerAddressRepository;
-use Webkul\Customer\Repositories\WishlistRepository;
-use Webkul\Product\Contracts\Product as ProductContract;
-use Webkul\Product\Repositories\ProductRepository;
-use Webkul\Shipping\Facades\Shipping;
-use Webkul\Tax\Facades\Tax;
-use Webkul\Tax\Repositories\TaxCategoryRepository;
+use Webkul\Checkout\Exceptions\BillingAddressNotFoundException;
+use Webkul\Checkout\Contracts\CartAddress as CartAddressContract;
 
 class Cart
 {
@@ -271,34 +272,66 @@ class Cart
             }
 
             throw new \Exception($cartProducts);
-        } else {
-            $parentCartItem = null;
+        }
 
-            foreach ($cartProducts as $cartProduct) {
-                $cartItem = $this->getItemByProduct($cartProduct, $data);
+        // ✅ Load product categories
+        $product->load(['categories:id']);
 
-                if (isset($cartProduct['parent_id'])) {
-                    $cartProduct['parent_id'] = $parentCartItem->id;
-                }
+        // ✅ Get partial payment settings from DB
+        $category_id = DB::table('core_config')
+            ->where('code', 'general.content.partial_payment.category_id')
+            ->value('value');
 
-                if (! $cartItem) {
-                    $cartItem = $this->cartItemRepository->create(array_merge($cartProduct, ['cart_id' => $this->cart->id]));
+        $extra_percentage = DB::table('core_config')
+            ->where('code', 'general.content.partial_payment.payment_percentage')
+            ->value('value');
+
+        // ✅ Check if the product belongs to the specified category
+        $hasPartialPaymentCategory = $product->categories->contains('id', $category_id);
+
+        $parentCartItem = null;
+
+        foreach ($cartProducts as $cartProduct) {
+            $cartItem = $this->getItemByProduct($cartProduct, $data);
+
+            if (isset($cartProduct['parent_id'])) {
+                $cartProduct['parent_id'] = $parentCartItem->id;
+            }
+
+            if ($hasPartialPaymentCategory) {
+                $prices = $product->getTypeInstance()->getProductPrices();
+
+                if ($product->price) {
+                    $newPartialPayment = (($product->price * (int) $data['quantity']) * $extra_percentage) / 100;
+                } elseif ($prices->final) {
+                    $newPartialPayment = (($prices->final * (int) $data['quantity']) * $extra_percentage) / 100;
+                } elseif ($prices->regular) {
+                    $newPartialPayment = (($prices->regular * (int) $data['quantity']) * $extra_percentage) / 100;
                 } else {
-                    if (
-                        isset($cartProduct['parent_id'])
-                        && $cartItem->parent_id !== $parentCartItem->id
-                    ) {
-                        $cartItem = $this->cartItemRepository->create(array_merge($cartProduct, [
-                            'cart_id' => $this->cart->id,
-                        ]));
-                    } else {
-                        $cartItem = $this->cartItemRepository->update($cartProduct, $cartItem->id);
-                    }
+                    $newPartialPayment = 0;
                 }
+            } else {
+                $newPartialPayment = 0;
+            }
 
-                if (! $parentCartItem) {
-                    $parentCartItem = $cartItem;
-                }
+            if (! $cartItem) {
+                // ✅ First time adding this item to cart
+                $cartItem = $this->cartItemRepository->create(array_merge($cartProduct, [
+                    'cart_id'                => $this->cart->id,
+                    'partial_payment_amount' => $newPartialPayment, // ✅ Initial amount
+                ]));
+            } else {
+                // ✅ Add new partial payment amount to existing amount
+                $previousPartialPayment = $cartItem->partial_payment_amount ?? 0;
+                $updatedPartialPayment = $previousPartialPayment + $newPartialPayment;
+
+                $cartItem = $this->cartItemRepository->update(array_merge($cartProduct, [
+                    'partial_payment_amount' => $updatedPartialPayment, // ✅ Cumulative partial payment
+                ]), $cartItem->id);
+            }
+
+            if (! $parentCartItem) {
+                $parentCartItem = $cartItem;
             }
         }
 
@@ -591,7 +624,7 @@ class Cart
         $cartPayment = new CartPayment;
 
         $cartPayment->method = $params['method'];
-        $cartPayment->method_title = core()->getConfigData('sales.payment_methods.'.$params['method'].'.title');
+        $cartPayment->method_title = core()->getConfigData('sales.payment_methods.' . $params['method'] . '.title');
         $cartPayment->cart_id = $this->cart->id;
         $cartPayment->save();
 
@@ -828,6 +861,8 @@ class Cart
 
         $this->refreshCart();
 
+        // ✅ Reset totals before recalculating
+        $this->cart->partial_payment_amount = 0; // Reset partial payment amount
         $this->cart->sub_total = $this->cart->base_sub_total = 0;
         $this->cart->sub_total_incl_tax = $this->cart->base_sub_total_incl_tax = 0;
 
@@ -841,6 +876,7 @@ class Cart
 
         $quantities = 0;
 
+        // ✅ Loop through items and calculate totals
         foreach ($this->cart->items as $item) {
             $this->cart->discount_amount += $item->discount_amount;
             $this->cart->base_discount_amount += $item->base_discount_amount;
@@ -855,15 +891,20 @@ class Cart
             $this->cart->base_sub_total_incl_tax = (float) $this->cart->base_sub_total_incl_tax + $item->base_total_incl_tax;
 
             $quantities += $item->quantity;
+
+            // ✅ Add partial payment to the total
+            $this->cart->partial_payment_amount += $item->partial_payment_amount;
         }
 
+        // ✅ Set the item quantity and count
         $this->cart->items_qty = $quantities;
-
         $this->cart->items_count = $this->cart->items->count();
 
-        $this->cart->grand_total = $this->cart->sub_total + $this->cart->tax_total - $this->cart->discount_amount;
-        $this->cart->base_grand_total = $this->cart->base_sub_total + $this->cart->base_tax_total - $this->cart->base_discount_amount;
+        // ✅ Recalculate grand totals, considering partial payment
+        $this->cart->grand_total = $this->cart->sub_total + $this->cart->tax_total - $this->cart->discount_amount + $this->cart->partial_payment_amount;
+        $this->cart->base_grand_total = $this->cart->base_sub_total + $this->cart->base_tax_total - $this->cart->base_discount_amount + $this->cart->partial_payment_amount;
 
+        // ✅ Handle shipping if applicable
         if ($shipping = $this->cart->selected_shipping_rate) {
             $this->cart->tax_total += $shipping->tax_amount;
             $this->cart->base_tax_total += $shipping->base_tax_amount;
@@ -881,6 +922,7 @@ class Cart
             $this->cart->base_discount_amount += $shipping->base_discount_amount;
         }
 
+        // ✅ Round all totals
         $this->cart->discount_amount = round($this->cart->discount_amount, 2);
         $this->cart->base_discount_amount = round($this->cart->base_discount_amount, 2);
 
@@ -891,11 +933,11 @@ class Cart
         $this->cart->base_sub_total_incl_tax = round($this->cart->base_sub_total_incl_tax, 2);
 
         $this->cart->grand_total = round($this->cart->grand_total, 2);
-
         $this->cart->base_grand_total = round($this->cart->base_grand_total, 2);
 
         $this->cart->cart_currency_code = core()->getCurrentCurrencyCode();
 
+        // ✅ Save the cart
         $this->cart->save();
 
         Event::dispatch('checkout.cart.collect.totals.after', $this->cart);

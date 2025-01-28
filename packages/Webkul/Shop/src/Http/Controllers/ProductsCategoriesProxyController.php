@@ -3,9 +3,11 @@
 namespace Webkul\Shop\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Config;
+use Webkul\Product\Repositories\ProductRepository;
 use Webkul\Category\Repositories\CategoryRepository;
 use Webkul\Marketing\Repositories\URLRewriteRepository;
-use Webkul\Product\Repositories\ProductRepository;
 use Webkul\Theme\Repositories\ThemeCustomizationRepository;
 
 class ProductsCategoriesProxyController extends Controller
@@ -80,7 +82,15 @@ class ProductsCategoriesProxyController extends Controller
 
             visitor()->visit($product);
 
-            return view('shop::products.view', compact('product'));
+            $product->load(['categories:id']);
+            $category_id = DB::table('core_config')->where('code', 'general.content.partial_payment.category_id')->select(['id', 'code', 'value'])->first()->value;
+            $extra_percentage = DB::table('core_config')->where('code', 'general.content.partial_payment.payment_percentage')->select(['id', 'code', 'value'])->first()->value;
+            if ($category_id) {
+                $categoryExists = $product->categories->contains('id', $category_id);
+            } else {
+                $categoryExists = false;
+            }
+            return view('shop::products.view', compact('product', 'categoryExists', 'extra_percentage'));
         }
 
         /**

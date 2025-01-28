@@ -2,15 +2,16 @@
 
 namespace Webkul\Shop\Http\Controllers\API;
 
-use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Response;
-use Webkul\CartRule\Repositories\CartRuleCouponRepository;
 use Webkul\Checkout\Facades\Cart;
-use Webkul\Checkout\Models\CartAddress;
-use Webkul\Product\Repositories\ProductRepository;
+use Illuminate\Support\Facades\DB;
 use Webkul\Shipping\Facades\Shipping;
+use Webkul\Checkout\Models\CartAddress;
 use Webkul\Shop\Http\Resources\CartResource;
 use Webkul\Shop\Http\Resources\ProductResource;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Webkul\Product\Repositories\ProductRepository;
+use Webkul\CartRule\Repositories\CartRuleCouponRepository;
 
 class CartController extends APIController
 {
@@ -43,7 +44,7 @@ class CartController extends APIController
     }
 
     /**
-     * Store items in cart.
+     * Store items in cart with partial payment support.
      */
     public function store()
     {
@@ -62,11 +63,38 @@ class CartController extends APIController
 
             if (request()->get('is_buy_now')) {
                 Cart::deActivateCart();
-
                 $response['redirect'] = route('shop.checkout.onepage.index');
             }
 
-            $cart = Cart::addProduct($product, request()->all());
+            // Load product categories
+            $product->load(['categories:id']);
+
+            // Get partial payment settings
+            $category_id = DB::table('core_config')
+                ->where('code', 'general.content.partial_payment.category_id')
+                ->value('value');
+
+            $extra_percentage = DB::table('core_config')
+                ->where('code', 'general.content.partial_payment.payment_percentage')
+                ->value('value');
+
+            // Check if the product belongs to the specified category
+            $hasPartialPaymentCategory = $product->categories->contains('id', $category_id);
+
+            // Prepare additional options
+            $cartOptions = request()->all();
+            if ($hasPartialPaymentCategory) {
+                // Calculate partial payment amount based on product price
+                $prices = $product->getTypeInstance()->getProductPrices();
+                if ($product->price) {
+                    $cartOptions['partial_payment_amount'] = (($product->price * (int)$cartOptions['quantity']) * $extra_percentage) / 100;
+                } elseif ($prices->final) {
+                    $cartOptions['partial_payment_amount'] = (($product->final->price * (int)$cartOptions['quantity']) * $extra_percentage) / 100;
+                } elseif ($prices->regular) {
+                    $cartOptions['partial_payment_amount'] = (($product->regular->price * (int)$cartOptions['quantity']) * $extra_percentage) / 100;
+                }
+            }
+            $cart = Cart::addProduct($product, $cartOptions);
 
             return new JsonResource(array_merge([
                 'data'    => new CartResource($cart),

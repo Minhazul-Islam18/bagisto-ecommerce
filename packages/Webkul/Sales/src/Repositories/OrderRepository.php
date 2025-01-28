@@ -83,7 +83,7 @@ class OrderRepository extends Repository
 
             /* storing log for errors */
             Log::error(
-                'OrderRepository:createOrderIfNotThenRetry: '.$e->getMessage(),
+                'OrderRepository:createOrderIfNotThenRetry: ' . $e->getMessage(),
                 ['data' => $data]
             );
 
@@ -345,7 +345,7 @@ class OrderRepository extends Repository
         }
 
         $order->grand_total_invoiced = $order->sub_total_invoiced + $order->shipping_invoiced + $order->tax_amount_invoiced - $order->discount_invoiced;
-        $order->base_grand_total_invoiced = $order->base_sub_total_invoiced + $order->base_shipping_invoiced + $order->base_tax_amount_invoiced - $order->base_discount_invoiced;
+        $order->base_grand_total_invoiced = $order->base_sub_total_invoiced + $order->partial_payment_amount + $order->base_shipping_invoiced + $order->base_tax_amount_invoiced - $order->base_discount_invoiced;
 
         // order refund total
         $order->sub_total_refunded = $order->base_sub_total_refunded = 0;

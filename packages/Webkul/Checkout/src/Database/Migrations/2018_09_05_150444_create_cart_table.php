@@ -32,6 +32,7 @@ return new class extends Migration
             $table->decimal('base_grand_total', 12, 4)->default(0)->nullable();
             $table->decimal('sub_total', 12, 4)->default(0)->nullable();
             $table->decimal('base_sub_total', 12, 4)->default(0)->nullable();
+            $table->decimal('partial_payment_amount', 12, 4)->default(0)->nullable();
             $table->decimal('tax_total', 12, 4)->default(0)->nullable();
             $table->decimal('base_tax_total', 12, 4)->default(0)->nullable();
             $table->decimal('discount_amount', 12, 4)->default(0)->nullable();
