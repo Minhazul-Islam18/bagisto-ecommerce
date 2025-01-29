@@ -68,7 +68,7 @@
     @endforeach
 
          <!-- Product Carousel -->
-                <x-shop::products.carousel
+                <x-shop::products.flash-sale-carousel
                     :title="$data['title'] ?? 'Flash sales'"
                     :src="route('shop.api.products.on-flash-sale', $data['filters'] ?? [])"
                     :navigation-link="route('shop.search.index', $data['filters'] ?? [])"
